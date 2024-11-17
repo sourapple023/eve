@@ -19,30 +19,23 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio); // Improve rendering on high-DPI screens
     document.body.appendChild(renderer.domElement);
 
-    // Create Eve with higher resolution geometry and advanced material
-    const geometry = new THREE.SphereGeometry(1, 256, 256); // Higher resolution geometry
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x0077ff,
-        roughness: 0.4,
-        metalness: 0.6,
-        emissive: 0x072534,
-        emissiveIntensity: 0.5
-    });
+    // Create Eve with simpler geometry and basic material
+    const geometry = new THREE.SphereGeometry(1, 64, 64); // Simpler geometry
+    const material = new THREE.MeshBasicMaterial({ color: 0x0077ff });
     eve = new THREE.Mesh(geometry, material);
     scene.add(eve);
 
-    // Add sparkly pixie dust particles
+    // Add dynamic sparkly particle dust
     const particleMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 0.05,
-        map: new THREE.TextureLoader().load('textures/sparkle.png'), // Add a sparkle texture
+        size: 0.01, // Smaller size for particle dust effect
         blending: THREE.AdditiveBlending,
         transparent: true,
         depthWrite: false
     });
 
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 3000; // Increase the number of particles for more detail
+    const particleCount = 5000; // Increase the number of particles for more detail
     const particlesPositions = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
@@ -71,6 +64,7 @@ function init() {
 
     // Add event listeners
     document.addEventListener('mousemove', onMouseMove, false);
+    window.addEventListener('resize', onWindowResize, false); // Handle window resize events
 
     // Start animation loop
     animate();
@@ -91,8 +85,8 @@ function animate() {
     // Update particles (pixie dust)
     const positions = pixieDust.geometry.attributes.position.array;
     for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.01;
-        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.01;
+        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.02; // More dynamic movement
+        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.02; // More dynamic movement
     }
     pixieDust.geometry.attributes.position.needsUpdate = true;
 
