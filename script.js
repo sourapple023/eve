@@ -19,9 +19,15 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio); // Improve rendering on high-DPI screens
     document.body.appendChild(renderer.domElement);
 
-    // Create Eve with simpler geometry and basic material
-    const geometry = new THREE.SphereGeometry(1, 64, 64); // Simpler geometry
-    const material = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+    // Create Eve with higher resolution geometry and advanced material
+    const geometry = new THREE.SphereGeometry(1, 128, 128); // Higher resolution geometry
+    const material = new THREE.MeshStandardMaterial({
+        color: 0x0077ff,
+        roughness: 0.3,
+        metalness: 0.7,
+        emissive: 0x072534,
+        emissiveIntensity: 0.5
+    });
     eve = new THREE.Mesh(geometry, material);
     scene.add(eve);
 
