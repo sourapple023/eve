@@ -14,9 +14,10 @@ function init() {
     camera.position.z = 5;
 
     // Create renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio); // Improve rendering on high-DPI screens
+    renderer.setClearColor(0x000000, 0); // Set background to transparent
     document.body.appendChild(renderer.domElement);
 
     // Create Eve with higher resolution geometry and advanced material
@@ -34,14 +35,14 @@ function init() {
     // Add dynamic sparkly particle dust
     const particleMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 0.01, // Smaller size for particle dust effect
+        size: 0.005, // Smaller size for particle dust effect
         blending: THREE.AdditiveBlending,
         transparent: true,
         depthWrite: false
     });
 
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 5000; // Increase the number of particles for more detail
+    const particleCount = 7000; // Increase the number of particles for more detail
     const particlesPositions = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
@@ -91,8 +92,8 @@ function animate() {
     // Update particles (pixie dust)
     const positions = pixieDust.geometry.attributes.position.array;
     for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.02; // More dynamic movement
-        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.02; // More dynamic movement
+        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.002; // Slower movement
+        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.002; // Slower movement
     }
     pixieDust.geometry.attributes.position.needsUpdate = true;
 
