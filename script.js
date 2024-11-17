@@ -1,7 +1,9 @@
-let scene, camera, renderer, eve, clock, pixieDust;
+let scene, camera, renderer, eve, clock, aura;
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const target = new THREE.Vector3(); // For mouse tracking
+let eveFollow = true; // Initialize follow state
+let auraEnabled = true;
 
 function init() {
     // Create scene
@@ -15,43 +17,32 @@ function init() {
     // Create renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    document.getElementById('container').appendChild(renderer.domElement);
+    renderer.setPixelRatio(window.devicePixelRatio); // Improve rendering on high-DPI screens
+    document.body.appendChild(renderer.domElement);
 
-    // Load high-resolution texture
-    const textureLoader = new THREE.TextureLoader();
-    const highResTexture = textureLoader.load('textures/your-high-res-texture.jpg');
-
-    // Advanced shader material
-    const vertexShader = `
-        varying vec3 vNormal;
-        void main() {
-            vNormal = normalize(normalMatrix * normal);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `;
-
-    const fragmentShader = `
-        varying vec3 vNormal;
-        void main() {
-            float intensity = pow(0.9 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 4.0);
-            gl_FragColor = vec4(0.0, 0.5, 1.0, 1.0) * intensity;
-        }
-    `;
-
+    // Create Eve with higher resolution geometry and advanced material
+    const geometry = new THREE.SphereGeometry(1, 256, 256); // Higher resolution geometry
     const material = new THREE.MeshStandardMaterial({
-        map: highResTexture,
-        roughness: 0.5,
-        metalness: 1.0
+        color: 0x0077ff,
+        roughness: 0.2,
+        metalness: 0.8,
+        emissive: 0x072534,
+        emissiveIntensity: 0.3
     });
-
-    // Create Eve with higher-detail geometry and advanced material
-    const geometry = new THREE.SphereGeometry(1, 256, 256); // Higher detail
     eve = new THREE.Mesh(geometry, material);
-    eve.castShadow = true;
-    eve.receiveShadow = true;
     scene.add(eve);
+
+    // Create aura effect
+    const auraGeometry = new THREE.SphereGeometry(1.2, 256, 256);
+    const auraMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0077ff,
+        transparent: true,
+        opacity: 0.2,
+        blending: THREE.AdditiveBlending
+    });
+    aura = new THREE.Mesh(auraGeometry, auraMaterial);
+    aura.visible = true;
+    scene.add(aura);
 
     // Create lights
     const ambientLight = new THREE.AmbientLight(0x404040, 2); // soft white light
@@ -67,33 +58,8 @@ function init() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
-    // Add sparkly pixie dust particles
-    const particleMaterial = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 0.1,
-        map: new THREE.TextureLoader().load('textures/sparkle.png'), // Add a sparkle texture
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-        depthWrite: false
-    });
-
-    const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 1000;
-    const particlesPositions = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-        particlesPositions[i * 3] = (Math.random() - 0.5) * 10;
-        particlesPositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-        particlesPositions[i * 3 + 2] = (Math.random() - 0.5) * 10;
-    }
-
-    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
-    pixieDust = new THREE.Points(particleGeometry, particleMaterial);
-    scene.add(pixieDust);
-
     // Add event listeners
     document.addEventListener('mousemove', onMouseMove, false);
-    document.addEventListener('click', onClick, false);
 
     // Start animation loop
     animate();
@@ -102,20 +68,23 @@ function init() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Add rotation for a dynamic effect
-    eve.rotation.x += 0.01;
-    eve.rotation.y += 0.01;
+    // Add smooth rotation for a dynamic effect
+    eve.rotation.x += 0.005;
+    eve.rotation.y += 0.005;
 
-    // Make Eve follow the mouse slightly
-    eve.position.lerp(target, 0.1);
-
-    // Update particles (pixie dust)
-    const positions = pixieDust.geometry.attributes.position.array;
-    for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.005;
-        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.005;
+    // Make Eve follow the mouse slightly if enabled
+    if (eveFollow) {
+        eve.position.lerp(target, 0.03); // Slower, smoother movement
     }
-    pixieDust.geometry.attributes.position.needsUpdate = true;
+
+    // Update aura to match Eve's color and position
+    if (auraEnabled) {
+        aura.material.color.copy(eve.material.color);
+        aura.position.copy(eve.position);
+        aura.visible = true;
+    } else {
+        aura.visible = false;
+    }
 
     renderer.render(scene, camera);
 }
@@ -134,14 +103,10 @@ function onMouseMove(event) {
     const intersects = raycaster.intersectObject(eve);
 
     if (intersects.length > 0) {
-        eve.material.color.set(0xff0000);
+        eve.material.color.lerp(new THREE.Color(0xff0000), 0.1); // Smooth color change
     } else {
-        eve.material.color.set(0x0077ff);
+        eve.material.color.lerp(new THREE.Color(0x0077ff), 0.1); // Smooth color change
     }
-}
-
-function onClick() {
-    eve.material.color.set(Math.random() * 0xffffff);
 }
 
 function onWindowResize() {
@@ -151,10 +116,6 @@ function onWindowResize() {
 
     // Update renderer size and pixel ratio
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
 }
-
-// Listen for window resize events
-window.addEventListener('resize', onWindowResize, false);
 
 init();
