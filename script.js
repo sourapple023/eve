@@ -1,9 +1,8 @@
-let scene, camera, renderer, eve, clock, aura;
+let scene, camera, renderer, eve, clock, pixieDust;
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 const target = new THREE.Vector3(); // For mouse tracking
 let eveFollow = true; // Initialize follow state
-let auraEnabled = true;
 
 function init() {
     // Create scene
@@ -24,25 +23,37 @@ function init() {
     const geometry = new THREE.SphereGeometry(1, 256, 256); // Higher resolution geometry
     const material = new THREE.MeshStandardMaterial({
         color: 0x0077ff,
-        roughness: 0.2,
-        metalness: 0.8,
+        roughness: 0.4,
+        metalness: 0.6,
         emissive: 0x072534,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.5
     });
     eve = new THREE.Mesh(geometry, material);
     scene.add(eve);
 
-    // Create aura effect
-    const auraGeometry = new THREE.SphereGeometry(1.2, 256, 256);
-    const auraMaterial = new THREE.MeshBasicMaterial({
-        color: 0x0077ff,
+    // Add sparkly pixie dust particles
+    const particleMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 0.05,
+        map: new THREE.TextureLoader().load('textures/sparkle.png'), // Add a sparkle texture
+        blending: THREE.AdditiveBlending,
         transparent: true,
-        opacity: 0.2,
-        blending: THREE.AdditiveBlending
+        depthWrite: false
     });
-    aura = new THREE.Mesh(auraGeometry, auraMaterial);
-    aura.visible = true;
-    scene.add(aura);
+
+    const particleGeometry = new THREE.BufferGeometry();
+    const particleCount = 3000; // Increase the number of particles for more detail
+    const particlesPositions = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+        particlesPositions[i * 3] = (Math.random() - 0.5) * 10;
+        particlesPositions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+        particlesPositions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+    }
+
+    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlesPositions, 3));
+    pixieDust = new THREE.Points(particleGeometry, particleMaterial);
+    scene.add(pixieDust);
 
     // Create lights
     const ambientLight = new THREE.AmbientLight(0x404040, 2); // soft white light
@@ -72,19 +83,18 @@ function animate() {
     eve.rotation.x += 0.005;
     eve.rotation.y += 0.005;
 
-    // Make Eve follow the mouse slightly if enabled
+    // Make Eve follow the mouse dynamically
     if (eveFollow) {
-        eve.position.lerp(target, 0.03); // Slower, smoother movement
+        eve.position.lerp(target, 0.05); // Faster, more dynamic movement
     }
 
-    // Update aura to match Eve's color and position
-    if (auraEnabled) {
-        aura.material.color.copy(eve.material.color);
-        aura.position.copy(eve.position);
-        aura.visible = true;
-    } else {
-        aura.visible = false;
+    // Update particles (pixie dust)
+    const positions = pixieDust.geometry.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.01;
+        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.01;
     }
+    pixieDust.geometry.attributes.position.needsUpdate = true;
 
     renderer.render(scene, camera);
 }
@@ -99,14 +109,6 @@ function onMouseMove(event) {
     target.z = 0;
 
     raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObject(eve);
-
-    if (intersects.length > 0) {
-        eve.material.color.lerp(new THREE.Color(0xff0000), 0.1); // Smooth color change
-    } else {
-        eve.material.color.lerp(new THREE.Color(0x0077ff), 0.1); // Smooth color change
-    }
 }
 
 function onWindowResize() {
