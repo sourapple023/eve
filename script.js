@@ -1,8 +1,4 @@
 let scene, camera, renderer, eve, clock, pixieDust;
-const mouse = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
-const target = new THREE.Vector3(); // For mouse tracking
-let eveFollow = true; // Initialize follow state
 
 function init() {
     // Create scene
@@ -20,8 +16,8 @@ function init() {
     renderer.setClearColor(0x000000, 0); // Set background to transparent
     document.body.appendChild(renderer.domElement);
 
-    // Create Eve with higher resolution geometry and advanced material
-    const geometry = new THREE.SphereGeometry(1, 128, 128); // Higher resolution geometry
+    // Create Eve (basic sphere for now)
+    const geometry = new THREE.SphereGeometry(1, 32, 32); // Basic geometry
     const material = new THREE.MeshStandardMaterial({
         color: 0x0077ff,
         roughness: 0.3,
@@ -32,7 +28,7 @@ function init() {
     eve = new THREE.Mesh(geometry, material);
     scene.add(eve);
 
-    // Add dynamic sparkly particle dust
+    // Create particles
     const particleMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
         size: 0.005, // Smaller size for particle dust effect
@@ -42,7 +38,7 @@ function init() {
     });
 
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 7000; // Increase the number of particles for more detail
+    const particleCount = 7000; // Number of particles
     const particlesPositions = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount; i++) {
@@ -64,15 +60,6 @@ function init() {
     pointLight.castShadow = true;
     scene.add(pointLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(-3, -3, -5);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-
-    // Add event listeners
-    document.addEventListener('mousemove', onMouseMove, false);
-    window.addEventListener('resize', onWindowResize, false); // Handle window resize events
-
     // Start animation loop
     animate();
 }
@@ -80,36 +67,19 @@ function init() {
 function animate() {
     requestAnimationFrame(animate);
 
-    // Add smooth rotation for a dynamic effect
-    eve.rotation.x += 0.005;
-    eve.rotation.y += 0.005;
+    // Rotate Eve for visual feedback
+    eve.rotation.x += 0.01;
+    eve.rotation.y += 0.01;
 
-    // Make Eve follow the mouse dynamically
-    if (eveFollow) {
-        eve.position.lerp(target, 0.05); // Faster, more dynamic movement
-    }
-
-    // Update particles (pixie dust)
+    // Update particles
     const positions = pixieDust.geometry.attributes.position.array;
     for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.002; // Slower movement
-        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.002; // Slower movement
+        positions[i + 1] += Math.sin(clock.getElapsedTime() + positions[i] + positions[i + 2]) * 0.002; // Slow movement
+        positions[i] += Math.cos(clock.getElapsedTime() + positions[i + 1] + positions[i + 2]) * 0.002; // Slow movement
     }
     pixieDust.geometry.attributes.position.needsUpdate = true;
 
     renderer.render(scene, camera);
-}
-
-function onMouseMove(event) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // Set target position for Eve to follow
-    target.x = (event.clientX / window.innerWidth) * 2 - 1;
-    target.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    target.z = 0;
-
-    raycaster.setFromCamera(mouse, camera);
 }
 
 function onWindowResize() {
@@ -120,5 +90,8 @@ function onWindowResize() {
     // Update renderer size and pixel ratio
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
+
+// Handle window resize events
+window.addEventListener('resize', onWindowResize, false);
 
 init();
