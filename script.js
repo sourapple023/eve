@@ -1,7 +1,7 @@
 let scene, camera, renderer, eve, clock, pixieDust;
-const particles = [];
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
+const target = new THREE.Vector3(); // For mouse tracking
 
 function init() {
     // Create scene
@@ -16,6 +16,7 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
     document.getElementById('container').appendChild(renderer.domElement);
 
     // Load high-resolution texture
@@ -46,8 +47,10 @@ function init() {
     });
 
     // Create Eve with higher-detail geometry and advanced material
-    const geometry = new THREE.SphereGeometry(1, 128, 128); // Higher detail
+    const geometry = new THREE.SphereGeometry(1, 256, 256); // Higher detail
     eve = new THREE.Mesh(geometry, material);
+    eve.castShadow = true;
+    eve.receiveShadow = true;
     scene.add(eve);
 
     // Create lights
@@ -56,6 +59,7 @@ function init() {
 
     const pointLight = new THREE.PointLight(0xffffff, 1, 100);
     pointLight.position.set(2, 3, 4);
+    pointLight.castShadow = true;
     scene.add(pointLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -66,7 +70,7 @@ function init() {
     // Add sparkly pixie dust particles
     const particleMaterial = new THREE.PointsMaterial({
         color: 0xffffff,
-        size: 0.05,
+        size: 0.1,
         map: new THREE.TextureLoader().load('textures/sparkle.png'), // Add a sparkle texture
         blending: THREE.AdditiveBlending,
         transparent: true,
@@ -102,6 +106,9 @@ function animate() {
     eve.rotation.x += 0.01;
     eve.rotation.y += 0.01;
 
+    // Make Eve follow the mouse slightly
+    eve.position.lerp(target, 0.1);
+
     // Update particles (pixie dust)
     const positions = pixieDust.geometry.attributes.position.array;
     for (let i = 0; i < positions.length; i += 3) {
@@ -116,6 +123,11 @@ function animate() {
 function onMouseMove(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Set target position for Eve to follow
+    target.x = (event.clientX / window.innerWidth) * 2 - 1;
+    target.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    target.z = 0;
 
     raycaster.setFromCamera(mouse, camera);
 
