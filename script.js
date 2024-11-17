@@ -1,8 +1,12 @@
-let scene, camera, renderer, eve;
+let scene, camera, renderer, eve, clock;
+const particles = [];
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
 
 function init() {
     // Create scene
     scene = new THREE.Scene();
+    clock = new THREE.Clock();
 
     // Create camera
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -11,6 +15,7 @@ function init() {
     // Create renderer
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     document.getElementById('container').appendChild(renderer.domElement);
 
     // Shader material
@@ -53,10 +58,23 @@ function init() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
-    // Add event listener for interactivity
-    document.addEventListener('click', () => {
-        eve.material.color.set(Math.random() * 0xffffff);
-    });
+    // Add tiny particles
+    for (let i = 0; i < 50; i++) {
+        const particleGeometry = new THREE.SphereGeometry(0.01, 8, 8);  // Extremely tiny particles
+        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+        particle.position.set(
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10
+        );
+        particles.push(particle);
+        scene.add(particle);
+    }
+
+    // Add event listeners
+    document.addEventListener('mousemove', onMouseMove, false);
+    document.addEventListener('click', onClick, false);
 
     // Start animation loop
     animate();
@@ -69,15 +87,44 @@ function animate() {
     eve.rotation.x += 0.01;
     eve.rotation.y += 0.01;
 
+    // Update particles
+    particles.forEach(particle => {
+        particle.position.y += Math.sin(clock.getElapsedTime() + particle.position.x + particle.position.z) * 0.005;
+    });
+
     renderer.render(scene, camera);
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+function onMouseMove(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObject(eve);
+
+    if (intersects.length > 0) {
+        eve.material.color.set(0xff0000);
+    } else {
+        eve.material.color.set(0x0077ff);
+    }
 }
 
+function onClick() {
+    eve.material.color.set(Math.random() * 0xffffff);
+}
+
+function onWindowResize() {
+    // Adjust camera aspect ratio and update projection matrix
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    // Update renderer size and pixel ratio
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+}
+
+// Listen for window resize events
 window.addEventListener('resize', onWindowResize, false);
 
 init();
